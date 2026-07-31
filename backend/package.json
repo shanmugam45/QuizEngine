@@ -1,0 +1,16 @@
+{
+  "name": "quizgame-backend",
+  "version": "1.0.0",
+  "main": "Server.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node Server.js",
+    "start": "node Server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.3"
+  }
+}
