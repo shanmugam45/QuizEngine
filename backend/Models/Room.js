@@ -3,7 +3,7 @@
 class Room {
   constructor({ code, title, topic, numQuestions, difficulty, hostName }) {
     this.code = code;
-    this.title = title;
+    this.title = title || "";
     this.topic = topic || "";
     this.numQuestions = numQuestions || 5;
     this.difficulty = difficulty || "medium";

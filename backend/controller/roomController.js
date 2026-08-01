@@ -18,9 +18,9 @@ async function createRoom(req, res, next) {
 }
 
 // GET /api/rooms — return every room that currently exists.
-function listRooms(req, res, next) {
+async function listRooms(req, res, next) {
   try {
-    const rooms = roomService.listRooms();
+    const rooms = await roomService.listRooms();
     return res.status(200).json({
       success: true,
       data: rooms,
@@ -31,9 +31,9 @@ function listRooms(req, res, next) {
 }
 
 // GET /api/rooms/:roomCode — fetch a single room by its code.
-function getRoom(req, res, next) {
+async function getRoom(req, res, next) {
   try {
-    const room = roomService.getRoomByCode(req.params.roomCode);
+    const room = await roomService.getRoomByCode(req.params.roomCode);
 
     if (!room) {
       return res.status(404).json({
@@ -52,9 +52,9 @@ function getRoom(req, res, next) {
 }
 
 // POST /api/rooms/:roomCode/join — add a player to the room.
-function joinRoom(req, res, next) {
+async function joinRoom(req, res, next) {
   try {
-    const result = roomService.joinRoom({
+    const result = await roomService.joinRoom({
       code: req.params.roomCode,
       playerName: req.body.playerName,
       avatar: req.body.avatar,
@@ -70,9 +70,9 @@ function joinRoom(req, res, next) {
 }
 
 // POST /api/rooms/:roomCode/start — transition the room from lobby to live.
-function startRoom(req, res, next) {
+async function startRoom(req, res, next) {
   try {
-    const room = roomService.startRoom(req.params.roomCode);
+    const room = await roomService.startRoom(req.params.roomCode);
 
     return res.status(200).json({
       success: true,

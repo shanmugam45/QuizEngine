@@ -66,7 +66,7 @@ io.on("connection", (socket) => {
   let currentRole = null;
   let currentPlayerId = null;
 
-  socket.on("join-game", ({ roomCode, role, playerId }) => {
+  socket.on("join-game", async ({ roomCode, role, playerId }) => {
     currentRoom = roomCode;
     currentRole = role;
     currentPlayerId = playerId;
@@ -77,7 +77,7 @@ io.on("connection", (socket) => {
 
       let game = quizService.getGame(roomCode);
       if (!game) {
-        const room = roomService.getRoomRaw(roomCode);
+        const room = await roomService.getRoomRaw(roomCode);
         if (room) {
           quizService.initGame(room);
           game = quizService.getGame(roomCode);

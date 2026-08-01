@@ -1,9 +1,47 @@
 // ── Room service ──────────────────────────────────────────────────────────────
 
+const fs = require("fs");
+const path = require("path");
+
 const Room = require("../Models/Room");
 const { generateQuestions } = require("./aiService");
 
 const rooms = new Map();
+const DATA_DIR = path.join(__dirname, "..", "data");
+const DATA_FILE = path.join(DATA_DIR, "rooms.json");
+
+// Load any previously saved rooms at startup.
+function loadFromDisk() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const parsed = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+      if (Array.isArray(parsed)) {
+        parsed.forEach((raw) => {
+          const room = new Room(raw);
+          Object.assign(room, raw);
+          rooms.set(room.code, room);
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("Could not load rooms.json, starting with an empty store:", err.message);
+  }
+}
+
+// Write all rooms to disk so they survive a server restart.
+function persist() {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(
+      DATA_FILE,
+      JSON.stringify(Array.from(rooms.values()).map((r) => r.toJSON()), null, 2),
+    );
+  } catch (err) {
+    console.warn("Could not persist rooms.json:", err.message);
+  }
+}
+
+loadFromDisk();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -47,6 +85,7 @@ async function createRoom({ title, topic, numQuestions, difficulty, hostName }) 
   });
 
   rooms.set(code, room);
+  persist();
   return room.toJSON();
 }
 
@@ -92,6 +131,7 @@ function joinRoom({ code, playerName, avatar }) {
   };
   room.players.push(player);
   room.touch();
+  persist();
   return { room: room.toJSON(), player };
 }
 
@@ -103,13 +143,11 @@ function startRoom(code) {
     throw err;
   }
   room.status = "live";
-  room.touch();
-
-  // Assign player numbers
   room.players.forEach((p, i) => {
     p.number = i + 1;
   });
-
+  room.touch();
+  persist();
   return room.toJSON();
 }
 
@@ -128,6 +166,7 @@ async function generateRoomQuestions(code) {
   });
 
   room.touch();
+  persist();
   return room.toJSON();
 }
 
