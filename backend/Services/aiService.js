@@ -1,14 +1,20 @@
+const { info, warn, error } = require("../Utils/logger");
+
 async function generateQuestions({ topic, numQuestions, difficulty }) {
+  const SERVICE = "aiService";
   const API_KEY = process.env.GROQ_API_KEY;
   const AI_MODEL = process.env.AI_MODEL || 'llama-3.1-8b-instant';
 
   if (!API_KEY) {
+    error(SERVICE, "GROQ_API_KEY is not configured in .env");
     throw new Error('GROQ_API_KEY is not configured in .env');
   }
 
   const timerMap = { easy: 25, medium: 18, hard: 12 };
   const timer = timerMap[difficulty] || 18;
   const count = Math.min(Math.max(1, parseInt(numQuestions, 10) || 5), 20);
+
+  info(SERVICE, "Generating questions", { topic, difficulty, count, model: AI_MODEL });
 
   const prompt = `Generate ${count} quiz questions about "${topic}" at ${difficulty} difficulty.
 Return ONLY a JSON array (no markdown, no code fences). Each object must have:
@@ -32,14 +38,18 @@ Questions must be factual, educational, and age-appropriate.`;
     }),
   });
 
+  info(SERVICE, "Calling AI API", { model: AI_MODEL, url: "https://api.groq.com/openai/v1/chat/completions" });
+
   if (!response.ok) {
     const errBody = await response.text();
+    error(SERVICE, `AI API error (${response.status})`, { body: errBody });
     throw new Error(`AI API error (${response.status}): ${errBody}`);
   }
 
   const data = await response.json();
   const raw = data.choices?.[0]?.message?.content;
   if (!raw) {
+    error(SERVICE, "AI returned an empty response");
     throw new Error('AI returned an empty response');
   }
 
@@ -51,10 +61,12 @@ Questions must be factual, educational, and age-appropriate.`;
       .trim();
     parsed = JSON.parse(cleaned);
   } catch {
+    error(SERVICE, "Failed to parse AI response as JSON");
     throw new Error('Failed to parse AI response as JSON');
   }
 
   const questions = Array.isArray(parsed) ? parsed : (parsed.questions || []);
+  info(SERVICE, "Questions generated", { count: questions.length });
 
   return questions.map((q, i) => ({
     id: `q-${Date.now()}-${i}`,

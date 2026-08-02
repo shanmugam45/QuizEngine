@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { io, Socket } from 'socket.io-client'
 import '../styles/AudienceQuiz.css'
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
-const SOCKET_URL = API.replace('/api', '')
+import { SOCKET_URL } from '../api'
 
 interface PlayerScore {
   id: string

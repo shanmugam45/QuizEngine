@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import '../styles/CreateRoom.css'
 import { StudentLoader } from '../components/StudentMascots'
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+import { API } from '../api'
 
 const difficulties = [
   { value: 'easy', label: 'Easy', desc: 'Slow timer, simple picks' },

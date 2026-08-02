@@ -56,7 +56,7 @@ app.post(
   "/api/rooms/:roomCode/generate",
   normalizeRoomCodeParam,
   roomController.generateQuestions,
-);
+) 
 
 app.use(notFound);
 app.use(errorHandler);

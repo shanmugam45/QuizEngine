@@ -5,6 +5,9 @@ const path = require("path");
 
 const Room = require("../Models/Room");
 const { generateQuestions } = require("./aiService");
+const { info, warn } = require("../Utils/logger");
+
+const SERVICE = "roomService";
 
 const rooms = new Map();
 const DATA_DIR = path.join(__dirname, "..", "data");
@@ -22,9 +25,12 @@ function loadFromDisk() {
           rooms.set(room.code, room);
         });
       }
+      info(SERVICE, "Loaded rooms from disk", { path: DATA_FILE, count: parsed.length });
+    } else {
+      info(SERVICE, "No rooms.json found on disk, starting empty", { path: DATA_FILE });
     }
   } catch (err) {
-    console.warn("Could not load rooms.json, starting with an empty store:", err.message);
+    warn(SERVICE, "Could not load rooms.json, starting with an empty store", { error: err.message });
   }
 }
 
@@ -37,7 +43,7 @@ function persist() {
       JSON.stringify(Array.from(rooms.values()).map((r) => r.toJSON()), null, 2),
     );
   } catch (err) {
-    console.warn("Could not persist rooms.json:", err.message);
+    warn(SERVICE, "Could not persist rooms.json", { error: err.message });
   }
 }
 
@@ -86,6 +92,7 @@ async function createRoom({ title, topic, numQuestions, difficulty, hostName }) 
 
   rooms.set(code, room);
   persist();
+  info(SERVICE, "Room created", { code, title: room.title, topic: room.topic, questions: room.questions.length });
   return room.toJSON();
 }
 
@@ -132,6 +139,7 @@ function joinRoom({ code, playerName, avatar }) {
   room.players.push(player);
   room.touch();
   persist();
+  info(SERVICE, "Player joined room", { code, playerName: cleanName, playerCount: room.players.length });
   return { room: room.toJSON(), player };
 }
 
@@ -148,6 +156,7 @@ function startRoom(code) {
   });
   room.touch();
   persist();
+  info(SERVICE, "Room started", { code, playerCount: room.players.length });
   return room.toJSON();
 }
 
@@ -167,6 +176,7 @@ async function generateRoomQuestions(code) {
 
   room.touch();
   persist();
+  info(SERVICE, "Questions regenerated for room", { code, questions: room.questions.length });
   return room.toJSON();
 }
 
