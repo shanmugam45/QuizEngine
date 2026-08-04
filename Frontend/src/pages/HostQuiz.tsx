@@ -40,6 +40,7 @@ function HostQuiz() {
   const [correctAnswer, setCorrectAnswer] = useState<number | null>(null)
   const [answeredCount, setAnsweredCount] = useState(0)
   const [totalPlayers, setTotalPlayers] = useState(0)
+  const [paused, setPaused] = useState(false)
 
   useEffect(() => {
     const socket = io(SOCKET_URL)
@@ -52,7 +53,12 @@ function HostQuiz() {
       setTimeLeft(data.timer)
       setCorrectAnswer(data.correctAnswer)
       setAnsweredCount(0)
+      setPaused(false)
       setPhase('question')
+    })
+
+    socket.on('pause', ({ paused: isPaused }) => {
+      setPaused(isPaused)
     })
 
     socket.on('phase-change', ({ phase: newPhase }) => {
@@ -88,12 +94,12 @@ function HostQuiz() {
   }, [roomCode])
 
   useEffect(() => {
-    if (phase !== 'question' || !question) return
+    if (phase !== 'question' || !question || paused) return
     const interval = setInterval(() => {
       setTimeLeft((prev) => Math.max(0, prev - 1))
     }, 1000)
     return () => clearInterval(interval)
-  }, [phase, question])
+  }, [phase, question, paused])
 
   useEffect(() => {
     if (phase !== 'podium') return
@@ -104,6 +110,14 @@ function HostQuiz() {
   }, [phase])
 
   const goHome = () => { window.location.href = '/' }
+
+  const handleSkip = () => {
+    socketRef.current?.emit('skip-question', { roomCode })
+  }
+
+  const handlePauseToggle = () => {
+    socketRef.current?.emit(paused ? 'resume-game' : 'pause-game', { roomCode })
+  }
 
   if (phase === 'finished') {
     return (
@@ -152,6 +166,10 @@ function HostQuiz() {
           <p className="hq-podium-timer">Next question in {podiumCountdown}s</p>
         </div>
 
+        <button className="hq-control-btn is-skip" onClick={handleSkip}>
+          Skip to Next
+        </button>
+
         <section className="hq-podium">
           {top5.map((p, i) => (
             <div key={p.id} className={`hq-podium-card sketch-card ${i === 0 ? 'is-gold' : i === 1 ? 'is-silver' : i === 2 ? 'is-bronze' : ''}`}>
@@ -191,10 +209,21 @@ function HostQuiz() {
           Q{question ? question.questionIndex + 1 : '-'} / {question ? question.totalQuestions : '-'}
           <span className="hq-category">{question?.category}</span>
         </p>
-        <h1 className="hq-timer">{timeLeft}s</h1>
+        <h1 className="hq-timer">
+          {paused ? 'Paused' : `${timeLeft}s`}
+        </h1>
         <p className="hq-answered">
           {answeredCount} / {totalPlayers} answered
         </p>
+      </div>
+
+      <div className="hq-controls">
+        <button className={`hq-control-btn ${paused ? 'is-resume' : ''}`} onClick={handlePauseToggle}>
+          {paused ? 'Resume' : 'Pause'}
+        </button>
+        <button className="hq-control-btn is-skip" onClick={handleSkip}>
+          Skip Question
+        </button>
       </div>
 
       {question && (

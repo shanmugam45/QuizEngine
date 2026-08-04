@@ -97,6 +97,7 @@ io.on("connection", (socket) => {
             });
           }
           if (state.questionData) socket.emit("question", state.questionData);
+          socket.emit("pause", { paused: Boolean(state.paused) });
         }
       }
     } else if (role === "audience") {
@@ -116,7 +117,29 @@ io.on("connection", (socket) => {
             winner: state.winner,
           });
         }
+        socket.emit("pause", { paused: Boolean(state.paused) });
       }
+    }
+  });
+
+  socket.on("skip-question", ({ roomCode }) => {
+    const result = quizService.skipQuestion(roomCode, io);
+    if (result && result.error) {
+      socket.emit("error", { message: result.error });
+    }
+  });
+
+  socket.on("pause-game", ({ roomCode }) => {
+    const result = quizService.pauseGame(roomCode, io);
+    if (result && result.error) {
+      socket.emit("error", { message: result.error });
+    }
+  });
+
+  socket.on("resume-game", ({ roomCode }) => {
+    const result = quizService.resumeGame(roomCode, io);
+    if (result && result.error) {
+      socket.emit("error", { message: result.error });
     }
   });
 

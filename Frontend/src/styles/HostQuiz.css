@@ -197,6 +197,44 @@
   transform: translate(1px, 1px);
   box-shadow: 2px 2px 0 #000;
 }
+.hq-controls {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.hq-control-btn {
+  appearance: none;
+  border: 3px solid #000;
+  border-radius: 999px;
+  padding: 10px 20px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  background: #fff;
+  color: #000;
+  box-shadow: 4px 4px 0 #000;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+.hq-control-btn:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 #000;
+}
+.hq-control-btn.is-skip {
+  background: #ff6b6b;
+  color: #000;
+}
+.hq-control-btn.is-resume {
+  background: #a9f0a9;
+}
+.hq-podium-timer {
+  font-size: 0.85rem;
+  font-weight: 700;
+  opacity: 0.6;
+}
 
 /* Podium */
 .hq-podium {
@@ -235,11 +273,6 @@
 .hq-podium-score {
   font-weight: 800;
   font-size: 1.1rem;
-}
-.hq-podium-timer {
-  font-size: 0.85rem;
-  font-weight: 700;
-  opacity: 0.6;
 }
 .hq-rest-scores {
   position: relative;

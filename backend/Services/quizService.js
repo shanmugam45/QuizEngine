@@ -1,3 +1,7 @@
+const { info } = require("../Utils/logger");
+
+const SERVICE = "quizService";
+
 const rooms = new Map();
 
 const activeGames = new Map();
@@ -24,6 +28,9 @@ function initGame(room) {
     podiumTimer: null,
     questionStartTime: 0,
     questionTimeLimit: 30000,
+    questionEndAt: 0,
+    paused: false,
+    pauseRemainingMs: 0,
     answersForCurrent: new Map(),
     answeredCount: 0,
     lastQuestionData: null,
@@ -98,10 +105,72 @@ function nextQuestion(roomCode, io) {
 
   emitScores(roomCode, io);
 
+  game.paused = false;
+  game.pauseRemainingMs = 0;
+  armQuestionTimer(roomCode, io, game.questionTimeLimit + 1000);
+}
+
+// Arm (or re-arm) the question timer so it fires in `delayMs`.
+function armQuestionTimer(roomCode, io, delayMs) {
+  const game = activeGames.get(roomCode);
+  if (!game) return;
   if (game.questionTimer) clearTimeout(game.questionTimer);
+  game.questionEndAt = Date.now() + delayMs;
   game.questionTimer = setTimeout(() => {
     endQuestionPhase(roomCode, io);
-  }, game.questionTimeLimit + 1000);
+  }, delayMs);
+}
+
+function pauseGame(roomCode, io) {
+  const game = activeGames.get(roomCode);
+  if (!game) return { error: 'Game not found' };
+  if (game.phase !== 'question') return { error: 'Can only pause during a question' };
+  if (game.paused) return { error: 'Game is already paused' };
+
+  if (game.questionTimer) clearTimeout(game.questionTimer);
+  game.paused = true;
+  game.pauseRemainingMs = Math.max(0, game.questionEndAt - Date.now());
+  game.questionTimer = null;
+
+  io.to(`room:${roomCode}`).emit('pause', { paused: true });
+  info(SERVICE, 'Game paused', { roomCode, remainingMs: game.pauseRemainingMs });
+  return { success: true };
+}
+
+function resumeGame(roomCode, io) {
+  const game = activeGames.get(roomCode);
+  if (!game) return { error: 'Game not found' };
+  if (game.phase !== 'question') return { error: 'Can only resume during a question' };
+  if (!game.paused) return { error: 'Game is not paused' };
+
+  const delay = Math.max(1, game.pauseRemainingMs);
+  game.paused = false;
+  game.pauseRemainingMs = 0;
+  armQuestionTimer(roomCode, io, delay);
+
+  io.to(`room:${roomCode}`).emit('pause', { paused: false });
+  info(SERVICE, 'Game resumed', { roomCode, remainingMs: delay });
+  return { success: true };
+}
+
+function skipQuestion(roomCode, io) {
+  const game = activeGames.get(roomCode);
+  if (!game) return { error: 'Game not found' };
+  if (game.phase === 'finished') return { error: 'Game already finished' };
+
+  if (game.phase === 'question') {
+    if (game.questionTimer) clearTimeout(game.questionTimer);
+    game.questionTimer = null;
+    game.paused = false;
+    endQuestionPhase(roomCode, io);
+  } else if (game.phase === 'podium') {
+    if (game.podiumTimer) clearTimeout(game.podiumTimer);
+    game.podiumTimer = null;
+    nextQuestion(roomCode, io);
+  }
+
+  info(SERVICE, 'Skipped by host', { roomCode, phase: game.phase });
+  return { success: true };
 }
 
 function submitAnswer(roomCode, playerId, answer, io) {
@@ -249,6 +318,7 @@ function getGameState(roomCode) {
     podium: game.lastPodium,
     finalScores: game.lastFinalScores,
     winner: game.lastWinner,
+    paused: game.paused,
   };
 }
 
@@ -259,6 +329,9 @@ module.exports = {
   startGame,
   nextQuestion,
   submitAnswer,
+  pauseGame,
+  resumeGame,
+  skipQuestion,
   endQuestionPhase,
   showPodium,
   endGame,

@@ -41,6 +41,7 @@ function AudienceQuiz() {
   const [finalScores, setFinalScores] = useState<PlayerScore[]>([])
   const [winner, setWinner] = useState<PlayerScore | null>(null)
   const [gapFromLeader, setGapFromLeader] = useState(0)
+  const [paused, setPaused] = useState(false)
 
   useEffect(() => {
     const socket = io(SOCKET_URL)
@@ -54,7 +55,12 @@ function AudienceQuiz() {
       setSelectedAnswer(null)
       setAnswerResult(null)
       setHasAnswered(false)
+      setPaused(false)
       setPhase('question')
+    })
+
+    socket.on('pause', ({ paused: isPaused }) => {
+      setPaused(isPaused)
     })
 
     socket.on('phase-change', ({ phase: newPhase }) => {
@@ -97,12 +103,12 @@ function AudienceQuiz() {
   }, [roomCode, playerId])
 
   useEffect(() => {
-    if (phase !== 'question' || !question) return
+    if (phase !== 'question' || !question || paused) return
     const interval = setInterval(() => {
       setTimeLeft((prev) => Math.max(0, prev - 1))
     }, 1000)
     return () => clearInterval(interval)
-  }, [phase, question])
+  }, [phase, question, paused])
 
   useEffect(() => {
     if (phase !== 'podium') return
@@ -113,7 +119,7 @@ function AudienceQuiz() {
   }, [phase])
 
   const submitAnswer = (answerIndex: number) => {
-    if (hasAnswered || !socketRef.current) return
+    if (hasAnswered || paused || !socketRef.current) return
     setSelectedAnswer(answerIndex)
     setHasAnswered(true)
 
@@ -224,8 +230,14 @@ function AudienceQuiz() {
           Q{question ? question.questionIndex + 1 : '-'} / {question ? question.totalQuestions : '-'}
           <span className="aq-category">{question?.category}</span>
         </p>
-        <h1 className="aq-timer">{timeLeft}s</h1>
+        <h1 className="aq-timer">{paused ? 'Paused' : `${timeLeft}s`}</h1>
       </div>
+
+      {paused && (
+        <div className="aq-paused-banner">
+          The host paused the game. Hang tight!
+        </div>
+      )}
 
       <div className="aq-my-stats sketch-card">
         <span>Rank: #{myRank}</span>
@@ -256,7 +268,7 @@ function AudienceQuiz() {
                   type="button"
                   className={cls}
                   onClick={() => submitAnswer(i)}
-                  disabled={hasAnswered || timeLeft === 0}
+                  disabled={hasAnswered || timeLeft === 0 || paused}
                 >
                   <span className="aq-opt-letter">{String.fromCharCode(65 + i)}</span>
                   <span>{opt}</span>
