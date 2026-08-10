@@ -175,7 +175,11 @@ function HostQuiz() {
           <p className="hq-podium-timer">Next question in {podiumCountdown}s</p>
         </div>
 
-        <button className="hq-control-btn is-skip" onClick={handleSkip} disabled={!socketRef.current?.connected}>
+        <button
+          className="hq-control-btn is-skip"
+          onClick={handleSkip}
+          disabled={!socketRef.current?.connected}
+        >
           Skip to Next
         </button>
 
