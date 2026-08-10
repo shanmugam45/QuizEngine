@@ -41,12 +41,21 @@ function HostQuiz() {
   const [answeredCount, setAnsweredCount] = useState(0)
   const [totalPlayers, setTotalPlayers] = useState(0)
   const [paused, setPaused] = useState(false)
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     const socket = io(SOCKET_URL)
     socketRef.current = socket
 
-    socket.emit('join-game', { roomCode, role: 'host' })
+    socket.on('connect', () => {
+      socket.emit('join-game', { roomCode, role: 'host' })
+      setNotice('')
+    })
+    socket.on('connect_error', () => setNotice('Connecting to server...'))
+    socket.on('disconnect', () => setNotice('Connection lost — reconnecting...'))
+    socket.on('error', ({ message }: { message?: string }) => {
+      setNotice(message || 'Something went wrong')
+    })
 
     socket.on('host-question', (data: QuestionData) => {
       setQuestion(data)
@@ -166,7 +175,7 @@ function HostQuiz() {
           <p className="hq-podium-timer">Next question in {podiumCountdown}s</p>
         </div>
 
-        <button className="hq-control-btn is-skip" onClick={handleSkip}>
+        <button className="hq-control-btn is-skip" onClick={handleSkip} disabled={!socketRef.current?.connected}>
           Skip to Next
         </button>
 
@@ -218,13 +227,23 @@ function HostQuiz() {
       </div>
 
       <div className="hq-controls">
-        <button className={`hq-control-btn ${paused ? 'is-resume' : ''}`} onClick={handlePauseToggle}>
+        <button
+          className={`hq-control-btn ${paused ? 'is-resume' : ''}`}
+          onClick={handlePauseToggle}
+          disabled={!socketRef.current?.connected}
+        >
           {paused ? 'Resume' : 'Pause'}
         </button>
-        <button className="hq-control-btn is-skip" onClick={handleSkip}>
+        <button
+          className="hq-control-btn is-skip"
+          onClick={handleSkip}
+          disabled={!socketRef.current?.connected}
+        >
           Skip Question
         </button>
       </div>
+
+      {notice && <p className="hq-error">{notice}</p>}
 
       {question && (
         <section className="hq-question-card sketch-card">

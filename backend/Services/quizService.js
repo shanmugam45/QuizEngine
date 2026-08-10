@@ -176,6 +176,7 @@ function skipQuestion(roomCode, io) {
 function submitAnswer(roomCode, playerId, answer, io) {
   const game = activeGames.get(roomCode);
   if (!game || game.phase !== 'question') return { error: 'Not in question phase' };
+  if (game.paused) return { error: 'Game is paused' };
 
   if (game.answersForCurrent.has(playerId)) {
     return { error: 'Already answered' };
@@ -224,6 +225,7 @@ function submitAnswer(roomCode, playerId, answer, io) {
 function endQuestionPhase(roomCode, io) {
   const game = activeGames.get(roomCode);
   if (!game || game.phase === 'podium') return;
+  if (game.paused) return;
 
   const q = game.questions[game.currentQuestionIndex];
 

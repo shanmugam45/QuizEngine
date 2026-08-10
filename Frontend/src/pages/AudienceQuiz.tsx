@@ -42,12 +42,21 @@ function AudienceQuiz() {
   const [winner, setWinner] = useState<PlayerScore | null>(null)
   const [gapFromLeader, setGapFromLeader] = useState(0)
   const [paused, setPaused] = useState(false)
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     const socket = io(SOCKET_URL)
     socketRef.current = socket
 
-    socket.emit('join-game', { roomCode, role: 'audience', playerId })
+    socket.on('connect', () => {
+      socket.emit('join-game', { roomCode, role: 'audience', playerId })
+      setNotice('')
+    })
+    socket.on('connect_error', () => setNotice('Connecting to server...'))
+    socket.on('disconnect', () => setNotice('Connection lost — reconnecting...'))
+    socket.on('error', ({ message }: { message?: string }) => {
+      setNotice(message || 'Something went wrong')
+    })
 
     socket.on('question', (data: QuestionData) => {
       setQuestion(data)
@@ -237,6 +246,10 @@ function AudienceQuiz() {
         <div className="aq-paused-banner">
           The host paused the game. Hang tight!
         </div>
+      )}
+
+      {notice && (
+        <div className="aq-notice">{notice}</div>
       )}
 
       <div className="aq-my-stats sketch-card">

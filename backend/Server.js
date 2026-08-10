@@ -123,6 +123,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("skip-question", ({ roomCode }) => {
+    if (currentRole !== "host" || !socket.rooms.has(`room:${roomCode}`)) {
+      socket.emit("error", { message: "Only the host can control the game" });
+      return;
+    }
     const result = quizService.skipQuestion(roomCode, io);
     if (result && result.error) {
       socket.emit("error", { message: result.error });
@@ -130,6 +134,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("pause-game", ({ roomCode }) => {
+    if (currentRole !== "host" || !socket.rooms.has(`room:${roomCode}`)) {
+      socket.emit("error", { message: "Only the host can control the game" });
+      return;
+    }
     const result = quizService.pauseGame(roomCode, io);
     if (result && result.error) {
       socket.emit("error", { message: result.error });
@@ -137,6 +145,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("resume-game", ({ roomCode }) => {
+    if (currentRole !== "host" || !socket.rooms.has(`room:${roomCode}`)) {
+      socket.emit("error", { message: "Only the host can control the game" });
+      return;
+    }
     const result = quizService.resumeGame(roomCode, io);
     if (result && result.error) {
       socket.emit("error", { message: result.error });
